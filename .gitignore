@@ -1,12 +1,12 @@
 __pycache__/
 *.pyc
 .env
-data/clips/
+data/raw/
 data/nuscenes/
 outputs/
 *.mp4
 *.avi
-!demo/*.gif
+!docs/*.gif
 .DS_Store
 *.egg-info/
 .venv/
