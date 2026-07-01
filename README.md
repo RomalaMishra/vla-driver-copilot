@@ -5,7 +5,6 @@ commands ("park behind the white van") to a structured, executable driving
 decision -- not just a description of the scene.
 
 ![demo](docs/demo.gif)
-*(placeholder -- generate with `python -m demo.make_demo_video` once clips + API key are in place)*
 
 ## Why this is VLA, not just VLM
 
@@ -101,8 +100,11 @@ python -m demo.make_demo_video
 
 ## Results
 
-See `report/writeup.md` for the full write-up, results table, and failure
-analysis once real labeled data is in place.
+Pilot eval (n=5): 100% maneuver accuracy when the referenced object is
+present, 0% on adversarial commands referencing absent objects (the model
+hallucinates a maneuver instead of abstaining -- see `report/writeup.md`
+for the full failure analysis). Ablation: two-stage grounding scores 0.25
+IoU vs. 0.00 for asking the VLM to output the bounding box directly.
 
 ## Project structure
 
