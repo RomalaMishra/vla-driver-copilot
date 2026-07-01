@@ -1,0 +1,22 @@
+# ── VLM reasoning (hosted API) ──────────────────────────
+groq>=0.11.0
+
+# ── Grounding (open-vocabulary object localization) ─────
+# Uses HuggingFace's native GroundingDINO support (AutoModelForZeroShotObjectDetection)
+# instead of the original groundingdino-py repo, which requires compiling custom
+# CUDA ops -- the HF port is pure PyTorch and installs reliably via pip.
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.40.0
+
+# ── Depth / distance ─────────────────────────────────────
+accelerate>=0.27.0
+pillow>=10.0.0
+
+# ── Vision / video I/O ────────────────────────────────────
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# ── Utilities ─────────────────────────────────────────────
+python-dotenv>=1.0.0
+tqdm>=4.66.0

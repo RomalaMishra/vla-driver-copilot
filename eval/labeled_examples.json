@@ -1,0 +1,30 @@
+{
+  "_schema_note": "Each entry is one hand-labeled (frame, command) test case. 'gold_box' and 'gold_maneuver' are YOUR labeled ground truth, not model output -- fill these in by looking at the actual frame yourself. Difficulty tiers: easy = single unambiguous referent, ambiguous = multiple plausible candidates, adversarial = referent not visible / command doesn't apply. These three placeholder entries show the schema -- replace frame_path with real extracted frames before running eval/run_eval.py.",
+  "examples": [
+    {
+      "id": "ex001",
+      "frame_path": "data/clips/example_01/frame_0000.jpg",
+      "command": "park behind the white van",
+      "difficulty": "easy",
+      "gold_maneuver": "pull_over",
+      "gold_box": [0, 0, 0, 0]
+    },
+    {
+      "id": "ex002",
+      "frame_path": "data/clips/example_02/frame_0000.jpg",
+      "command": "stop, there's a kid near the road",
+      "difficulty": "ambiguous",
+      "gold_maneuver": "stop",
+      "gold_box": [0, 0, 0, 0]
+    },
+    {
+      "id": "ex003",
+      "frame_path": "data/clips/example_03/frame_0000.jpg",
+      "command": "pull in behind the red truck",
+      "difficulty": "adversarial",
+      "gold_maneuver": "unknown",
+      "gold_box": null,
+      "note": "no red truck actually present in this frame -- correct behavior is maneuver=unknown, not a hallucinated box"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+data/clips/
+data/nuscenes/
+outputs/
+*.mp4
+*.avi
+!demo/*.gif
+.DS_Store
+*.egg-info/
+.venv/
+venv/
