@@ -52,8 +52,19 @@ def _draw_hud_panel(out: np.ndarray, command: str, result) -> None:
     cv2.putText(out, maneuver_text, (10, h - panel_h + 45),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
 
-    cv2.putText(out, result.rationale, (10, h - 8),
+    rationale = _truncate_to_width(result.rationale, w - 20, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+    cv2.putText(out, rationale, (10, h - 8),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+
+
+def _truncate_to_width(text: str, max_width_px: int, font, scale: float, thickness: int) -> str:
+    (tw, _), _ = cv2.getTextSize(text, font, scale, thickness)
+    if tw <= max_width_px:
+        return text
+    while text and tw > max_width_px:
+        text = text[:-1]
+        (tw, _), _ = cv2.getTextSize(text + "...", font, scale, thickness)
+    return text + "..." if text else ""
 
 
 def render_clip(frames: list, command: str, results: list, out_path: str, fps: int = 10) -> str:

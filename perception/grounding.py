@@ -71,14 +71,14 @@ def ground(
     results = processor.post_process_grounded_object_detection(
         outputs,
         inputs.input_ids,
-        box_threshold=box_threshold,
+        threshold=box_threshold,
         text_threshold=text_threshold,
         target_sizes=[image.size[::-1]],
     )[0]
 
     detections = [
         {"box": [round(v) for v in box.tolist()], "score": round(float(score), 3), "label": label}
-        for box, score, label in zip(results["boxes"], results["scores"], results["labels"])
+        for box, score, label in zip(results["boxes"], results["scores"], results["text_labels"])
     ]
     detections.sort(key=lambda d: d["score"], reverse=True)
     return detections
