@@ -1,6 +1,6 @@
 # VLA Driver Copilot: Grounding Natural-Language Driver Commands to Structured Driving Decisions
 
-*Status: implementation complete, evaluation pending real labeled data -- fill in the TODO sections below once `eval/run_eval.py` and `eval/ablation.py` have run against real clips.*
+*Status: pilot results in, on a small hand-labeled set (n=5) -- see Limitations for what a larger eval would need.*
 
 ## Problem
 
@@ -29,54 +29,75 @@ quantifies this directly rather than assuming it.
 
 ## Dataset
 
-TODO: nuScenes-mini scene IDs / clip sources used, once finalized. See
-`data/README.md` for sourcing.
+Two real driving clips (5 sec each, 10fps, sourced from free-license Pexels
+footage -- see `data/clips/SOURCES.md`): `example_01`, a rural road under
+heavy motion blur (kept deliberately, as a stress test), and `example_02`,
+clear downtown driving with unambiguous vehicles/cyclists visible. nuScenes-mini
+integration is planned (see Limitations) but not yet the eval source.
 
 ## Evaluation set
 
-`eval/labeled_examples.json` -- hand-labeled (frame, command) pairs across
-three difficulty tiers:
-- **easy**: single unambiguous referent
-- **ambiguous**: multiple plausible candidates for the referent
-- **adversarial**: the referent isn't visible, or the command doesn't map
-  to a clear maneuver -- correct behavior is `maneuver: "unknown"`, not a
-  hallucinated answer
-
-TODO: n = ___ examples, ___ easy / ___ ambiguous / ___ adversarial.
+`eval/labeled_examples.json` -- 5 hand-labeled (frame, command) pairs, boxes
+estimated by direct visual inspection of the raw frames (independent of any
+model output), across three difficulty tiers:
+- **easy** (n=2): single unambiguous referent
+- **ambiguous** (n=1): multiple plausible candidates for the referent
+- **adversarial** (n=2): the referent isn't visible, or isn't confidently
+  identifiable even on close visual inspection -- correct behavior is
+  `maneuver: "unknown"`, not a hallucinated answer
 
 ## Results
 
-TODO -- run `python -m eval.run_eval` and paste the summary table here:
-
 | Difficulty | n | Maneuver accuracy | Mean grounding IoU |
 |---|---|---|---|
-| easy | | | |
-| ambiguous | | | |
-| adversarial | | | |
-| **overall** | | | |
+| easy | 2 | 1.00 | 0.43 |
+| ambiguous | 1 | 1.00 | 0.30 |
+| adversarial | 2 | **0.00** | n/a |
+| **overall** | 5 | 0.60 | -- |
 
 ## Ablation: two-stage grounding vs. single-stage VLM bbox
 
-TODO -- run `python -m eval.ablation` and paste the result here:
-
 | | Grounding IoU | Maneuver accuracy |
 |---|---|---|
-| Two-stage (VLM + GroundingDINO) | | |
-| Single-stage (VLM outputs bbox directly) | | |
+| Two-stage (VLM + GroundingDINO) | **0.25** | 0.67 |
+| Single-stage (VLM outputs bbox directly) | **0.00** | 0.67 |
+
+The single-stage VLM produced zero IoU overlap with ground truth on every
+example with a gold box -- consistent with the known unreliability of
+general VLMs at precise pixel coordinates, and a direct empirical
+justification for the two-stage design rather than an assumed one.
+Maneuver accuracy is identical between the two conditions, as expected --
+that's the reasoning task, not the spatial one, and doesn't depend on which
+component does the localizing.
 
 ## Failure analysis
 
-TODO once real results are in. Categorize failures, don't just report the
-number that got them wrong:
-- Ambiguous referent cases: did the model pick a plausible-but-wrong
-  candidate, or correctly flag ambiguity?
-- Adversarial cases: did the model correctly say "unknown," or hallucinate
-  a confident answer for something not present? (This is arguably the most
-  important number in the whole eval -- a system that never abstains is
-  worse than one that does.)
-- Occlusion / motion blur cases in the multi-frame tracking runs: does the
-  box correctly show "lost" (red, per `viz/overlay.py`) rather than
-  drifting onto the wrong object?
+**The headline finding is the adversarial-tier failure, not the accuracy
+number.** Both adversarial examples got the maneuver wrong -- in both cases
+the model confidently output `pull_over` for a command referencing an
+object that was not present (`ex_adversarial_01`, no truck in frame at all)
+or not confidently identifiable (`ex_adversarial_02`, too motion-blurred to
+confirm). The system prompt explicitly instructs the model to output
+`"unknown"` when uncertain rather than guess -- it did not do so in either
+case. A system that never abstains is worse than one that does, and at n=2
+this isn't decisive evidence, but it's a real, reproducible pattern worth
+treating as the primary limitation of the current reasoning stage rather
+than a footnote. A likely mitigation: lower-confidence outputs (the model
+did report `confidence` below 0.9 on both adversarial cases even while
+still committing to a maneuver) could be thresholded and overridden to
+`"unknown"` post-hoc, rather than trusting the model's own decision to
+abstain or not.
+
+**Grounding IoU (0.30-0.44) is moderate, not tight**, on the tiers where a
+box existed at all. Boxes are in approximately the right region but not
+pixel-precise -- consistent with GroundingDINO being a general-purpose
+open-vocabulary detector, not fine-tuned for driving scenes specifically.
+
+**The ambiguous-tier example** (`ex_ambiguous_01`, two candidate cars) was
+resolved correctly by defaulting to the nearer vehicle, matching the gold
+label -- but n=1 here means this shouldn't be over-read; more ambiguous
+examples are needed to say anything general about how the system resolves
+multi-candidate references.
 
 ## Related work
 

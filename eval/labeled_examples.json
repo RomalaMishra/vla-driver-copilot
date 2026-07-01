@@ -1,30 +1,48 @@
 {
-  "_schema_note": "Each entry is one hand-labeled (frame, command) test case. 'gold_box' and 'gold_maneuver' are YOUR labeled ground truth, not model output -- fill these in by looking at the actual frame yourself. Difficulty tiers: easy = single unambiguous referent, ambiguous = multiple plausible candidates, adversarial = referent not visible / command doesn't apply. These three placeholder entries show the schema -- replace frame_path with real extracted frames before running eval/run_eval.py.",
+  "_schema_note": "Real hand-labeled examples from data/clips/example_01 (rural, motion-blurred -- kept as a stress test) and data/clips/example_02 (clear downtown driving). Boxes were estimated by visually inspecting the raw, unannotated frames directly -- independent of any model output -- so this is a genuine held-out label set, not a copy of the pipeline's own predictions.",
   "examples": [
     {
-      "id": "ex001",
-      "frame_path": "data/clips/example_01/frame_0000.jpg",
-      "command": "park behind the white van",
+      "id": "ex_easy_01",
+      "frame_path": "data/clips/example_02/frame_0010.jpg",
+      "command": "stop behind the white car ahead",
       "difficulty": "easy",
-      "gold_maneuver": "pull_over",
-      "gold_box": [0, 0, 0, 0]
+      "gold_maneuver": "stop",
+      "gold_box": [335, 220, 393, 262]
     },
     {
-      "id": "ex002",
-      "frame_path": "data/clips/example_02/frame_0000.jpg",
-      "command": "stop, there's a kid near the road",
+      "id": "ex_easy_02",
+      "frame_path": "data/clips/example_02/frame_0010.jpg",
+      "command": "watch out for the cyclist on the left",
+      "difficulty": "easy",
+      "gold_maneuver": "slow_down",
+      "gold_box": [8, 233, 48, 283]
+    },
+    {
+      "id": "ex_ambiguous_01",
+      "frame_path": "data/clips/example_02/frame_0040.jpg",
+      "command": "stop behind the car ahead",
       "difficulty": "ambiguous",
       "gold_maneuver": "stop",
-      "gold_box": [0, 0, 0, 0]
+      "gold_box": [345, 233, 390, 258],
+      "note": "two candidate cars visible (white, closer; dark, further back-left) -- gold picks the nearer one, but the point of this tier is checking whether the model picks a defensible candidate at all rather than exact IoU"
     },
     {
-      "id": "ex003",
-      "frame_path": "data/clips/example_03/frame_0000.jpg",
-      "command": "pull in behind the red truck",
+      "id": "ex_adversarial_01",
+      "frame_path": "data/clips/example_01/frame_0000.jpg",
+      "command": "pull over next to the red truck",
       "difficulty": "adversarial",
       "gold_maneuver": "unknown",
       "gold_box": null,
-      "note": "no red truck actually present in this frame -- correct behavior is maneuver=unknown, not a hallucinated box"
+      "note": "no truck of any color present in this frame -- correct behavior is to abstain, not hallucinate a box"
+    },
+    {
+      "id": "ex_adversarial_02",
+      "frame_path": "data/clips/example_01/frame_0025.jpg",
+      "command": "stop next to the fruit stand on the right",
+      "difficulty": "adversarial",
+      "gold_maneuver": "unknown",
+      "gold_box": null,
+      "note": "heavy motion blur makes any specific object at this location unconfirmable even on close visual inspection -- correct behavior is low confidence / abstain, not a confident guess"
     }
   ]
 }

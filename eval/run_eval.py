@@ -98,6 +98,10 @@ def summarize(results: list) -> None:
     print(f"\n  Overall maneuver accuracy: {overall_acc:.2f}")
     print(f"{'=' * 50}\n")
 
+    out_path = Path(__file__).parent.parent / "outputs" / "eval_results.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps({"overall_maneuver_accuracy": round(float(overall_acc), 2)}, indent=2))
+
     print("Per-example detail (for failure analysis):")
     for r in results:
         status = "OK" if r["maneuver_correct"] else "FAIL"
