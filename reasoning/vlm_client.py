@@ -96,7 +96,7 @@ def _interpret_groq(frame: np.ndarray, command: str, model: str = None) -> dict:
     from groq import Groq
 
     client = Groq(api_key=os.environ["GROQ_API_KEY"])
-    model = model or os.getenv("GROQ_VLM_MODEL", "llama-3.2-11b-vision-preview")
+    model = model or os.getenv("GROQ_VLM_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
     image_uri = _encode_image(frame)
 
     response = client.chat.completions.create(
@@ -172,7 +172,7 @@ def interpret_single_stage(frame: np.ndarray, command: str, model: str = None) -
     if backend == "groq":
         from groq import Groq
         client = Groq(api_key=os.environ["GROQ_API_KEY"])
-        model = model or os.getenv("GROQ_VLM_MODEL", "llama-3.2-11b-vision-preview")
+        model = model or os.getenv("GROQ_VLM_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
         response = client.chat.completions.create(
             model=model,
             messages=[
