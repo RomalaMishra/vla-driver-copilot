@@ -1,5 +1,5 @@
 {
-  "_schema_note": "Real hand-labeled examples from data/clips/example_01 (rural, motion-blurred -- kept as a stress test) and data/clips/example_02 (clear downtown driving). Boxes were estimated by visually inspecting the raw, unannotated frames directly -- independent of any model output -- so this is a genuine held-out label set, not a copy of the pipeline's own predictions.",
+  "_schema_note": "Real hand-labeled examples from data/clips/example_01 (rural, motion-blurred -- kept as a stress test), data/clips/example_02 (clear downtown driving, Pexels), and data/clips/scene-0061 (nuScenes-mini, real AV research benchmark data). Boxes were estimated by visually inspecting the raw, unannotated frames directly -- independent of any model output -- so this is a genuine held-out label set, not a copy of the pipeline's own predictions.",
   "examples": [
     {
       "id": "ex_easy_01",
@@ -43,6 +43,31 @@
       "gold_maneuver": "unknown",
       "gold_box": null,
       "note": "heavy motion blur makes any specific object at this location unconfirmable even on close visual inspection -- correct behavior is low confidence / abstain, not a confident guess"
+    },
+    {
+      "id": "ex_easy_03",
+      "frame_path": "data/clips/scene-0061/frame_0000.jpg",
+      "command": "wait behind the parked truck on the left",
+      "difficulty": "easy",
+      "gold_maneuver": "stop",
+      "gold_box": [0, 68, 178, 258]
+    },
+    {
+      "id": "ex_easy_04",
+      "frame_path": "data/clips/scene-0061/frame_0020.jpg",
+      "command": "follow the white van ahead",
+      "difficulty": "easy",
+      "gold_maneuver": "proceed",
+      "gold_box": [35, 163, 195, 258]
+    },
+    {
+      "id": "ex_adversarial_03",
+      "frame_path": "data/clips/scene-0061/frame_0000.jpg",
+      "command": "turn right at the roundabout",
+      "difficulty": "adversarial",
+      "gold_maneuver": "unknown",
+      "gold_box": null,
+      "note": "this is a straight intersection with construction barriers, not a roundabout -- correct behavior is to abstain rather than force a turn_right"
     }
   ]
 }

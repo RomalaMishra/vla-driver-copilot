@@ -30,6 +30,11 @@ CARD_SECONDS = 2
 CLIPS = [
     {"clip_dir": "data/clips/example_02", "command": "stop behind the white car ahead"},
     {"clip_dir": "data/clips/example_01", "command": "turn left at the upcoming junction"},
+    # nuScenes-mini keyframes are ~2Hz, not 10fps like the Pexels clips --
+    # hold_frames=5 replays each one for 0.5s at our 10fps output so the
+    # pacing matches the real capture rate instead of looking artificially
+    # fast/choppy next to the other clips.
+    {"clip_dir": "data/clips/scene-0061", "command": "follow the white van ahead", "hold_frames": 5, "max_frames": 20},
 ]
 
 
@@ -90,10 +95,14 @@ def main():
         if not frames:
             print(f"[skip] no frames in {clip_dir}")
             continue
+        max_frames = clip_cfg.get("max_frames")
+        if max_frames:
+            frames = frames[:max_frames]
+        hold = clip_cfg.get("hold_frames", 1)
         results = track_clip(frames, clip_cfg["command"])
         for frame, result in zip(frames, results):
-            annotated = draw_frame(frame, clip_cfg["command"], result)
-            all_frames.append(cv2.resize(annotated, size))
+            annotated = cv2.resize(draw_frame(frame, clip_cfg["command"], result), size)
+            all_frames += [annotated] * hold
 
     closing = _title_card(_closing_card_lines(), size)
     all_frames += [closing] * (CARD_SECONDS * FPS)

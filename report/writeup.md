@@ -1,6 +1,6 @@
 # VLA Driver Copilot: Grounding Natural-Language Driver Commands to Structured Driving Decisions
 
-*Status: pilot results in, on a small hand-labeled set (n=5) -- see Limitations for what a larger eval would need.*
+*Status: pilot results in, on a small hand-labeled set (n=8, now including real nuScenes-mini data) -- see Limitations for what a larger eval would need.*
 
 ## Problem
 
@@ -29,20 +29,24 @@ quantifies this directly rather than assuming it.
 
 ## Dataset
 
-Two real driving clips (5 sec each, 10fps, sourced from free-license Pexels
-footage -- see `data/clips/SOURCES.md`): `example_01`, a rural road under
-heavy motion blur (kept deliberately, as a stress test), and `example_02`,
-clear downtown driving with unambiguous vehicles/cyclists visible. nuScenes-mini
-integration is planned (see Limitations) but not yet the eval source.
+Three sources, kept deliberately varied rather than one clean set:
+- `example_01` -- rural road, free-license Pexels footage, heavy motion blur
+  (kept as a stress test, not a demo clip)
+- `example_02` -- clear downtown driving, free-license Pexels footage
+- `scene-0061` -- real **nuScenes-mini** scene ("Parked truck, construction,
+  intersection, turn left, following a van"), extracted via
+  `data/extract_nuscenes.py`
+
+See `data/clips/SOURCES.md` for provenance.
 
 ## Evaluation set
 
-`eval/labeled_examples.json` -- 5 hand-labeled (frame, command) pairs, boxes
+`eval/labeled_examples.json` -- 8 hand-labeled (frame, command) pairs, boxes
 estimated by direct visual inspection of the raw frames (independent of any
 model output), across three difficulty tiers:
-- **easy** (n=2): single unambiguous referent
+- **easy** (n=4): single unambiguous referent
 - **ambiguous** (n=1): multiple plausible candidates for the referent
-- **adversarial** (n=2): the referent isn't visible, or isn't confidently
+- **adversarial** (n=3): the referent isn't visible, or isn't confidently
   identifiable even on close visual inspection -- correct behavior is
   `maneuver: "unknown"`, not a hallucinated answer
 
@@ -50,54 +54,69 @@ model output), across three difficulty tiers:
 
 | Difficulty | n | Maneuver accuracy | Mean grounding IoU |
 |---|---|---|---|
-| easy | 2 | 1.00 | 0.43 |
+| easy | 4 | 0.50 | 0.42 |
 | ambiguous | 1 | 1.00 | 0.30 |
-| adversarial | 2 | **0.00** | n/a |
-| **overall** | 5 | 0.60 | -- |
+| adversarial | 3 | **0.00** | n/a |
+| **overall** | 8 | 0.38 | -- |
+
+Note: the first pilot pass (n=5) showed 0.60 overall accuracy; expanding to
+n=8 (adding 3 more real examples, including nuScenes) dropped that to 0.38.
+That drop is itself worth reporting rather than only keeping the more
+flattering early number -- a 5-example eval was simply too small to trust.
 
 ## Ablation: two-stage grounding vs. single-stage VLM bbox
 
 | | Grounding IoU | Maneuver accuracy |
 |---|---|---|
-| Two-stage (VLM + GroundingDINO) | **0.25** | 0.67 |
-| Single-stage (VLM outputs bbox directly) | **0.00** | 0.67 |
+| Two-stage (VLM + GroundingDINO) | **0.47** | **0.60** |
+| Single-stage (VLM outputs bbox directly) | **0.02** | 0.40 |
 
-The single-stage VLM produced zero IoU overlap with ground truth on every
-example with a gold box -- consistent with the known unreliability of
-general VLMs at precise pixel coordinates, and a direct empirical
-justification for the two-stage design rather than an assumed one.
-Maneuver accuracy is identical between the two conditions, as expected --
-that's the reasoning task, not the spatial one, and doesn't depend on which
-component does the localizing.
+The single-stage VLM produced essentially zero IoU overlap with ground
+truth -- consistent with the known unreliability of general VLMs at precise
+pixel coordinates, and a direct empirical justification for the two-stage
+design rather than an assumed one. Maneuver accuracy is *also* lower
+single-stage (0.40 vs 0.60), which wasn't predicted going in: asking one
+prompt to both reason about intent and produce precise coordinates appears
+to cost some reasoning quality too, not just localization precision --
+plausibly a divided-attention effect, though n=5 is too small to be certain
+that's the mechanism rather than noise.
 
 ## Failure analysis
 
-**The headline finding is the adversarial-tier failure, not the accuracy
-number.** Both adversarial examples got the maneuver wrong -- in both cases
-the model confidently output `pull_over` for a command referencing an
-object that was not present (`ex_adversarial_01`, no truck in frame at all)
-or not confidently identifiable (`ex_adversarial_02`, too motion-blurred to
-confirm). The system prompt explicitly instructs the model to output
-`"unknown"` when uncertain rather than guess -- it did not do so in either
-case. A system that never abstains is worse than one that does, and at n=2
-this isn't decisive evidence, but it's a real, reproducible pattern worth
-treating as the primary limitation of the current reasoning stage rather
-than a footnote. A likely mitigation: lower-confidence outputs (the model
-did report `confidence` below 0.9 on both adversarial cases even while
-still committing to a maneuver) could be thresholded and overridden to
-`"unknown"` post-hoc, rather than trusting the model's own decision to
-abstain or not.
+**The headline finding is the adversarial-tier failure, and it's now a
+robust pattern, not a coincidence.** All three adversarial examples failed
+-- the model confidently produced a maneuver (`pull_over`, `pull_over`,
+`turn_right`) for commands referencing objects or infrastructure that
+weren't present (`ex_adversarial_01`: no truck in frame; `ex_adversarial_03`:
+no roundabout, it's a straight intersection) or weren't confidently
+identifiable (`ex_adversarial_02`: motion blur). The system prompt
+explicitly instructs the model to output `"unknown"` when uncertain -- it
+did not do so in any of the three cases, across two different data sources.
+A system that never abstains is worse than one that does; a plausible
+mitigation is thresholding on the model's own reported `confidence` (it was
+below 0.9 in all three failures despite still committing to an answer)
+rather than trusting the model's self-assessed decision to abstain or not.
 
-**Grounding IoU (0.30-0.44) is moderate, not tight**, on the tiers where a
-box existed at all. Boxes are in approximately the right region but not
-pixel-precise -- consistent with GroundingDINO being a general-purpose
-open-vocabulary detector, not fine-tuned for driving scenes specifically.
+**A second, softer pattern: near-miss maneuver confusions on cautionary
+commands.** `ex_easy_02` ("watch out for the cyclist") predicted `yield`
+against a gold label of `slow_down`; `ex_easy_03` ("wait behind the parked
+truck") predicted `slow_down` against a gold label of `stop`. Both
+predictions are defensible interpretations of an inherently soft natural-
+language command -- this looks less like a model error and more like the
+10-way maneuver taxonomy being finer-grained than these commands
+unambiguously specify. Worth revisiting whether `yield`/`slow_down`/`stop`
+should be collapsed for scoring purposes, or whether the eval should accept
+a small set of acceptable maneuvers per example instead of one gold label.
+
+**Grounding IoU (0.30-0.73) is moderate on average**, but `ex_easy_04` (the
+nuScenes white van) scored 0.73 -- notably tighter than the Pexels examples.
+Not enough data to claim nuScenes grounds better in general, but worth
+watching as more nuScenes examples are added.
 
 **The ambiguous-tier example** (`ex_ambiguous_01`, two candidate cars) was
-resolved correctly by defaulting to the nearer vehicle, matching the gold
-label -- but n=1 here means this shouldn't be over-read; more ambiguous
-examples are needed to say anything general about how the system resolves
-multi-candidate references.
+resolved correctly by defaulting to the nearer vehicle -- but n=1 means this
+shouldn't be over-read; more ambiguous examples are needed to say anything
+general about how the system resolves multi-candidate references.
 
 ## Related work
 

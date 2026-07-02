@@ -100,11 +100,13 @@ python -m demo.make_demo_video
 
 ## Results
 
-Pilot eval (n=5): 100% maneuver accuracy when the referenced object is
-present, 0% on adversarial commands referencing absent objects (the model
-hallucinates a maneuver instead of abstaining -- see `report/writeup.md`
-for the full failure analysis). Ablation: two-stage grounding scores 0.25
-IoU vs. 0.00 for asking the VLM to output the bounding box directly.
+Pilot eval (n=8, including real nuScenes-mini data): 0.38 overall maneuver
+accuracy, but the real finding is in the breakdown -- 0/3 on adversarial
+commands referencing absent objects (the model hallucinates a maneuver
+instead of abstaining), reproducing consistently across two data sources.
+See `report/writeup.md` for the full failure analysis. Ablation: two-stage
+grounding scores 0.47 IoU vs. 0.02 for asking the VLM to output the
+bounding box directly.
 
 ## Project structure
 
