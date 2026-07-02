@@ -6,6 +6,13 @@ decision -- not just a description of the scene.
 
 ![demo](docs/demo.gif)
 
+The clip above is real [nuScenes](https://www.nuscenes.org/nuscenes)
+footage (`scene-0061`), played straight through with no edits or staging.
+Three driver lines are issued back to back as the clip plays -- a mix of
+questions and commands -- and the overlay shows the system's actual live
+output for each: the grounded object (box), the decision, and the reasoning
+behind it. Nothing in the video is scripted after the fact.
+
 ## Why this is VLA, not just VLM
 
 A plain VLM demo stops at "the model can describe what it sees" or "the
@@ -86,7 +93,8 @@ See `data/README.md` for how to get driving clips in place.
 
 ```bash
 # Run the pipeline on one clip + command, save an annotated video
-python scripts/run_example.py --clip data/clips/example_01 --command "park behind the white van"
+# (--fps 2 matches nuScenes' native keyframe rate; Pexels clips are already 10fps)
+python scripts/run_example.py --clip data/clips/scene-0061 --command "follow the white van ahead" --fps 2
 
 # Score against the hand-labeled eval set
 python -m eval.run_eval
@@ -94,7 +102,7 @@ python -m eval.run_eval
 # Run the two-stage vs. single-stage ablation
 python -m eval.ablation
 
-# Generate the full demo reel
+# Generate the demo reel (real nuScenes footage + a running driver Q&A)
 python -m demo.make_demo_video
 ```
 
@@ -116,8 +124,8 @@ perception/   Grounding (GroundingDINO) + depth estimation (local models)
 pipeline/     Orchestration: single-frame decision + multi-frame tracking
 viz/          HUD overlay + video rendering
 eval/         Hand-labeled test set, scoring, and the two-stage ablation
-demo/         Assembles the final demo reel
-data/         Clip sourcing instructions (gitignored raw data)
+demo/         Assembles the demo reel (nuScenes + running driver Q&A)
+data/         Curated clips + nuScenes extraction script
 scripts/      CLI entry points
 report/       Write-up
 ```
