@@ -17,6 +17,9 @@ pillow>=10.0.0
 opencv-python>=4.8.0
 numpy>=1.24.0
 
+# ── Dataset (nuScenes-mini) ───────────────────────────────
+nuscenes-devkit>=1.1.0
+
 # ── Utilities ─────────────────────────────────────────────
 python-dotenv>=1.0.0
 tqdm>=4.66.0

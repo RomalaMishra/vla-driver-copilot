@@ -8,32 +8,28 @@ data/clips/<clip_name>/frame_0001.jpg
 ...
 ```
 
-`data/clips/` is gitignored (raw frames shouldn't live in the repo) --
-populate it locally before running `scripts/run_example.py`, `eval/run_eval.py`,
-or `demo/make_demo_video.py`.
+Curated clips (small JPEG sequences, not raw video) are committed directly
+in `data/clips/` for reproducibility -- see `data/clips/SOURCES.md` for
+provenance. `data/raw/` (source `.mp4`s) and `data/nuscenes/` (the full
+nuScenes-mini download) are gitignored -- too large to commit, and easy to
+regenerate/re-download.
 
-## Recommended source: nuScenes-mini
+## nuScenes-mini (in use)
 
-[nuScenes](https://www.nuscenes.org/nuscenes) is the standard dataset for
-this kind of work in the AV research community -- real driving scenes with
-3D annotations, which is what lets `perception/depth.py` be checked against
-real distances rather than only relative depth. The `mini` split (10 scenes)
-is small enough for this project's scope.
+`scene-0061` is already extracted and in the eval set. To add more scenes:
 
-1. Register at nuscenes.org (free, requires agreeing to their terms --
-   this has to be done by a real person, not automated).
-2. Download the `v1.0-mini` split.
-3. Use `nuscenes-devkit` to extract camera frames for a scene into
-   `data/clips/<clip_name>/frame_%04d.jpg`.
+1. Register at [nuscenes.org](https://www.nuscenes.org/nuscenes) (free,
+   requires agreeing to their terms -- has to be done by a real person).
+2. Download `v1.0-mini.tgz`, extract into `data/nuscenes/`.
+3. `pip install nuscenes-devkit`
+4. `python -m data.extract_nuscenes --list` to see available scenes, then
+   `python -m data.extract_nuscenes --scene scene-XXXX` to extract one into
+   `data/clips/scene-XXXX/`.
 
 ## Alternative: any short dashcam clip
 
-The pipeline doesn't hard-depend on nuScenes -- any short (5-10 sec) driving
-clip works, split into sequential JPEG frames with `ffmpeg`:
-
-```bash
-ffmpeg -i your_clip.mp4 -vf fps=10 data/clips/your_clip_name/frame_%04d.jpg
-```
-
-Just make sure whatever source clips you use are appropriately licensed if
-this repo/demo is going to be public.
+The pipeline doesn't hard-depend on nuScenes -- `example_01`/`example_02`
+are free-license Pexels clips, extracted frame-by-frame via OpenCV (see
+`data/clips/SOURCES.md`). Any short (5-10 sec) driving clip works, split
+into sequential JPEGs; just make sure the source is appropriately licensed
+if this repo/demo is going to be public.
