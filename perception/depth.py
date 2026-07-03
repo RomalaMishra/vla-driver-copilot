@@ -28,12 +28,19 @@ _BIN_ORDER = {"near": 0, "mid": 1, "far": 2}
 def _load():
     global _pipe
     if _pipe is None:
+        import torch
         from transformers import pipeline as hf_pipeline
 
-        print("[depth] Loading Depth Anything V2 Small -- first call only...")
+        # device=-1 is transformers' CPU sentinel; without an explicit device
+        # this pipeline silently runs on CPU even when a GPU is available
+        # (unlike perception/grounding.py, which picks cuda itself), which
+        # was the main source of the per-frame tracking lag behind live video.
+        device = 0 if torch.cuda.is_available() else -1
+        print(f"[depth] Loading Depth Anything V2 Small on {'cuda' if device == 0 else 'cpu'} -- first call only...")
         _pipe = hf_pipeline(
             task="depth-estimation",
             model="depth-anything/Depth-Anything-V2-Small-hf",
+            device=device,
         )
         print("[depth] Model loaded.")
     return _pipe

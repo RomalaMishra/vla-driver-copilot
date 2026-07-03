@@ -106,8 +106,9 @@ python -m eval.ablation
 python -m demo.make_demo_video
 
 # Interactive live UI: clip plays in a browser, you type commands as it runs
-# and the pipeline actually reruns on each one (not pre-scripted)
-python -m webapp.app --clip data/clips/scene-0061
+# and the pipeline actually reruns on each one (not pre-scripted). Picks a
+# random clip from data/clips/ each run -- pass --clip to pin one.
+python -m webapp.app
 # then open http://127.0.0.1:5000
 ```
 

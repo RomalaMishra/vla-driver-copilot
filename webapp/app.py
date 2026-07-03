@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import random
 import sys
 import threading
 import time
@@ -20,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import cv2
 from flask import Flask, Response, jsonify, render_template, request
 
-from pipeline.track import FrameResult, track_clip
+from pipeline.track import FrameResult, track_clip_iter
 
 app = Flask(__name__)
 
@@ -46,6 +47,7 @@ _state = {
     "results": [],
     "chat": [],
     "processing": False,
+    "playhead": 0,  # frame index currently on screen, kept live by _gen_frames
 }
 
 
@@ -100,8 +102,11 @@ def _gen_frames():
         if not frames:
             time.sleep(0.1)
             continue
-        frame = frames[idx % len(frames)]
-        result = results[idx % len(results)]
+        pos = idx % len(frames)
+        frame = frames[pos]
+        result = results[pos]
+        with _lock:
+            _state["playhead"] = pos
         annotated = _draw_overlay(frame, result)
         ok, buf = cv2.imencode(".jpg", cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
         if ok:
@@ -110,14 +115,22 @@ def _gen_frames():
         time.sleep(1 / STREAM_FPS)
 
 
-def _run_command(command: str):
+def _run_command(command: str, start_index: int = 0):
     with _lock:
         frames = _state["frames"]
     try:
-        results = track_clip(frames, command)
-        first = results[0]
+        # track_clip_iter yields the start frame as soon as the one hosted
+        # VLM call returns -- that's the driver-facing answer, so post it to
+        # the chat immediately instead of waiting for every remaining frame
+        # to be re-grounded (which is what made the old blocking
+        # track_clip() feel like the copilot had gone silent for tens of
+        # seconds). start_index is wherever the clip was actually playing
+        # when the driver spoke, so the answer is judged against *that*
+        # frame instead of always frame 0.
+        it = track_clip_iter(frames, command, start_index=start_index)
+        first = next(it)
         with _lock:
-            _state["results"] = results
+            _state["results"][first.frame_index] = first
             _state["chat"].append({
                 "role": "copilot",
                 "text": first.rationale,
@@ -126,6 +139,9 @@ def _run_command(command: str):
                 "grounded": first.box is not None,
                 "distance_bin": first.distance_bin,
             })
+        for result in it:
+            with _lock:
+                _state["results"][result.frame_index] = result
     except Exception as exc:  # surface pipeline errors in the chat instead of a silent hang
         with _lock:
             _state["chat"].append({
@@ -160,8 +176,9 @@ def api_command():
         if _state["processing"]:
             return jsonify({"error": "still processing the previous command"}), 429
         _state["processing"] = True
+        start_index = _state["playhead"]
         _state["chat"].append({"role": "driver", "text": command})
-    threading.Thread(target=_run_command, args=(command,), daemon=True).start()
+    threading.Thread(target=_run_command, args=(command, start_index), daemon=True).start()
     return jsonify({"ok": True})
 
 
@@ -174,20 +191,46 @@ def api_state():
         })
 
 
+def _warm_up_models():
+    # grounding and depth are both lazy-loaded on first call; without this,
+    # that load (weight download/init, tens of seconds) happens during the
+    # driver's first command instead of at startup, which is what made the
+    # very first answer in a session feel far laggier than every one after.
+    from perception import depth, grounding
+
+    print("Warming up perception models (grounding + depth)...")
+    grounding._load()
+    depth._load()
+    print("Perception models ready.")
+
+
+def _pick_random_clip(clips_root: Path) -> Path:
+    candidates = sorted(
+        d for d in clips_root.iterdir()
+        if d.is_dir() and any(d.glob("frame_*.jpg"))
+    )
+    if not candidates:
+        raise FileNotFoundError(f"No clip directories with frame_*.jpg found under {clips_root}")
+    return random.choice(candidates)
+
+
 def main():
     p = argparse.ArgumentParser(description="Interactive VLA driver-copilot web UI")
-    p.add_argument("--clip", default="data/clips/scene-0061", help="Directory of frame_*.jpg files")
+    p.add_argument("--clip", default=None,
+                    help="Directory of frame_*.jpg files. Default: pick a random "
+                         "clip from data/clips/ each run.")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=5000)
     args = p.parse_args()
 
-    clip_dir = Path(args.clip)
+    clip_dir = Path(args.clip) if args.clip else _pick_random_clip(Path("data/clips"))
     frames = _load_frames(clip_dir)
     with _lock:
         _state["frames"] = frames
         _state["results"] = _neutral_results(len(frames))
 
     print(f"Loaded {len(frames)} frames from {clip_dir}")
+    _warm_up_models()
     print(f"Open http://{args.host}:{args.port} and type a driver command.")
     app.run(host=args.host, port=args.port, threaded=True, debug=False)
 

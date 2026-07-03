@@ -40,9 +40,20 @@ change_lane_left, change_lane_right, pull_over, proceed, unknown>",
   "confidence": <float 0-1>
 }
 
-If the command is ambiguous, refers to something not visible, or you are not \
-confident, use "unknown" for maneuver and explain why in the rationale rather \
-than guessing."""
+Many commands are general safety/permission questions rather than references to a \
+specific object -- e.g. "can I speed?", "is it safe to switch lanes?", "is the road \
+clear?". For these, do NOT default to "unknown" just because no object was named. \
+Instead judge directly from what's visible in the frame: are there nearby vehicles, \
+pedestrians, cyclists, or obstacles close ahead or in the relevant direction? If the \
+scene ahead looks clear of immediate hazards, answer "proceed" and say what you do \
+(or don't) see that supports it. If something nearby makes it unsafe, answer \
+"slow_down", "yield", or "stop" as appropriate. target_description should stay null \
+for these -- you're judging the whole visible scene, not locating one object.
+
+Reserve "unknown" for when the command references something that plainly is not in \
+frame, is genuinely ambiguous about which object/direction it means, or the image \
+doesn't show enough of the relevant area to judge -- not merely because the command \
+didn't name a specific object."""
 
 
 def _encode_image(frame: np.ndarray) -> str:
