@@ -26,6 +26,7 @@ class FrameResult:
     distance_trend: str        # "closing" | "opening" | "steady"
     maneuver: str
     rationale: str
+    confidence: float = 0.0
 
 
 def track_clip(frames: list, command: str) -> list:
@@ -73,6 +74,7 @@ def track_clip(frames: list, command: str) -> list:
             distance_trend=depth.trend(prev_bin, curr_bin),
             maneuver=initial.maneuver,
             rationale=initial.rationale,
+            confidence=initial.confidence,
         ))
         prev_bin = curr_bin
 

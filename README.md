@@ -104,6 +104,11 @@ python -m eval.ablation
 
 # Generate the demo reel (real nuScenes footage + a running driver Q&A)
 python -m demo.make_demo_video
+
+# Interactive live UI: clip plays in a browser, you type commands as it runs
+# and the pipeline actually reruns on each one (not pre-scripted)
+python -m webapp.app --clip data/clips/scene-0061
+# then open http://127.0.0.1:5000
 ```
 
 ## Results
@@ -125,6 +130,7 @@ pipeline/     Orchestration: single-frame decision + multi-frame tracking
 viz/          HUD overlay + video rendering
 eval/         Hand-labeled test set, scoring, and the two-stage ablation
 demo/         Assembles the demo reel (nuScenes + running driver Q&A)
+webapp/       Interactive live UI (Flask) -- type driver commands, pipeline reruns live
 data/         Curated clips + nuScenes extraction script
 scripts/      CLI entry points
 report/       Write-up
