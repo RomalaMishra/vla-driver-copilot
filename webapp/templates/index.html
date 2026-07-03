@@ -1,0 +1,308 @@
+<title>VLA Driver Copilot -- Live</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --panel-2: #1b1f26;
+    --border: #262b33;
+    --text: #e8ecf1;
+    --muted: #8b93a1;
+    --accent: #00e5c7;
+    --driver: #3ea6ff;
+    --copilot: #35e07a;
+    --danger: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 800px at 20% -10%, #10151b 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  header .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: .04em; margin: 0; }
+  header .sub { color: var(--muted); font-size: 12px; margin-left: 6px; }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+    gap: 16px;
+    padding: 16px 22px 22px;
+    min-height: 0;
+  }
+  @media (max-width: 880px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .video-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .video-wrap {
+    position: relative;
+    flex: 1;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+  .video-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .hud-bar {
+    display: flex;
+    gap: 18px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .hud-item { display: flex; flex-direction: column; gap: 3px; min-width: 90px; }
+  .hud-label { color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
+  .hud-value { font-weight: 600; font-size: 14px; }
+  .conf-bar {
+    width: 100%;
+    max-width: 140px;
+    height: 6px;
+    background: #2a2f38;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--copilot));
+    width: 0%;
+    transition: width .4s ease;
+  }
+
+  .chat-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .chat-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .thinking { display: none; align-items: center; gap: 6px; color: var(--accent); font-size: 12px; }
+  .thinking.active { display: flex; }
+  .thinking .spinner {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--accent); border-top-color: transparent;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg { max-width: 90%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.4; }
+  .msg.driver { align-self: flex-end; background: rgba(62,166,255,.15); border: 1px solid rgba(62,166,255,.35); color: #cfe8ff; }
+  .msg.copilot { align-self: flex-start; background: rgba(53,224,122,.10); border: 1px solid rgba(53,224,122,.3); color: #d8ffe6; }
+  .msg.copilot .tag {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    color: #0b0d10; background: var(--copilot); padding: 1px 6px; border-radius: 5px; margin-bottom: 5px;
+  }
+  .msg .role { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+
+  .composer {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .composer input {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    outline: none;
+  }
+  .composer input:focus { border-color: var(--accent); }
+  .composer button {
+    background: var(--accent);
+    color: #06201c;
+    border: none;
+    border-radius: 10px;
+    padding: 0 18px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .composer button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+  .chip {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+</style>
+
+<header>
+  <span class="dot"></span>
+  <h1>VLA DRIVER COPILOT</h1>
+  <span class="sub">live pipeline &middot; type a command, the model actually runs</span>
+</header>
+
+<main>
+  <div class="video-panel">
+    <div class="video-wrap">
+      <img src="/video_feed" alt="live clip">
+    </div>
+    <div class="hud-bar">
+      <div class="hud-item">
+        <span class="hud-label">Maneuver</span>
+        <span class="hud-value" id="hud-maneuver">IDLE</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Grounded target</span>
+        <span class="hud-value" id="hud-grounded">--</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Distance</span>
+        <span class="hud-value" id="hud-distance">--</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Confidence</span>
+        <div class="conf-bar"><div class="conf-fill" id="hud-conf-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-panel">
+    <div class="chat-header">
+      <span>Driver &lt;-&gt; Copilot</span>
+      <span class="thinking" id="thinking"><span class="spinner"></span>thinking...</span>
+    </div>
+    <div class="chat-log" id="chat-log"></div>
+    <div class="suggestions">
+      <span class="chip" data-cmd="follow the white van ahead">follow the white van ahead</span>
+      <span class="chip" data-cmd="is it safe to change lanes?">is it safe to change lanes?</span>
+      <span class="chip" data-cmd="stop, there's a pedestrian crossing">pedestrian crossing</span>
+      <span class="chip" data-cmd="park behind the truck on the left">park behind the truck</span>
+    </div>
+    <form class="composer" id="composer">
+      <input id="cmd-input" type="text" placeholder="Type a driver command..." autocomplete="off">
+      <button id="send-btn" type="submit">Send</button>
+    </form>
+  </div>
+</main>
+
+<script>
+const chatLog = document.getElementById("chat-log");
+const thinking = document.getElementById("thinking");
+const form = document.getElementById("composer");
+const input = document.getElementById("cmd-input");
+const sendBtn = document.getElementById("send-btn");
+
+let renderedCount = 0;
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function renderChat(chat) {
+  for (let i = renderedCount; i < chat.length; i++) {
+    const m = chat[i];
+    const div = document.createElement("div");
+    div.className = "msg " + m.role;
+    if (m.role === "driver") {
+      div.innerHTML = `<span class="role">Driver</span>${escapeHtml(m.text)}`;
+    } else {
+      const tag = m.maneuver ? `<span class="tag">${m.maneuver.toUpperCase().replace("_"," ")}</span><br>` : "";
+      div.innerHTML = `<span class="role">Copilot</span>${tag}${escapeHtml(m.text)}`;
+      document.getElementById("hud-maneuver").textContent = (m.maneuver || "unknown").toUpperCase().replace("_"," ");
+      document.getElementById("hud-grounded").textContent = m.grounded ? "locked" : "not found";
+      document.getElementById("hud-distance").textContent = m.distance_bin || "--";
+      document.getElementById("hud-conf-fill").style.width = Math.round((m.confidence || 0) * 100) + "%";
+    }
+    chatLog.appendChild(div);
+  }
+  renderedCount = chat.length;
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+async function poll() {
+  try {
+    const res = await fetch("/api/state");
+    const data = await res.json();
+    thinking.classList.toggle("active", data.processing);
+    sendBtn.disabled = data.processing;
+    renderChat(data.chat);
+  } catch (e) { /* ignore transient errors */ }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const command = input.value.trim();
+  if (!command) return;
+  input.value = "";
+  await fetch("/api/command", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ command }),
+  });
+  poll();
+});
+
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    input.value = chip.dataset.cmd;
+    form.dispatchEvent(new Event("submit"));
+  });
+});
+
+setInterval(poll, 700);
+poll();
+</script>

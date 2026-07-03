@@ -23,3 +23,6 @@ nuscenes-devkit>=1.1.0
 # ── Utilities ─────────────────────────────────────────────
 python-dotenv>=1.0.0
 tqdm>=4.66.0
+
+# ── Interactive web UI ────────────────────────────────────
+flask>=3.0.0
